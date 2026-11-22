@@ -159,6 +159,17 @@ fn prune_legacy_duplicates(cache: &Path) {
     }
 }
 
+/// Create a file if it is not there yet, without touching what is in it.
+fn touch(path: &Path) {
+    use std::fs::OpenOptions;
+
+    let _ = OpenOptions::new()
+        .write(true)
+        .create(true)
+        .truncate(false)
+        .open(path);
+}
+
 /// The pictures in the local pool, which were picked by hand and are trusted.
 fn local_pool(pool: &Path) -> Vec<PathBuf> {
     let Ok(entries) = std::fs::read_dir(pool) else {
@@ -185,8 +196,11 @@ fn main() {
         eprintln!("random-wallpaper: cannot create {}", cache.display());
         std::process::exit(1);
     }
-    let _ = std::fs::write(&history_path, "");
-    let _ = std::fs::write(&brightness_cache, "");
+
+    // Both files are state, not scratch: create them if they are missing but
+    // never empty them, or nothing would ever be remembered.
+    touch(&history_path);
+    touch(&brightness_cache);
 
     let mut candidates: Vec<PathBuf> = Vec::new();
 
